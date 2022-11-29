@@ -1,14 +1,14 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useState} from 'react';
 import axios from "axios";
+
+import contactService from "./services/contact";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [filter, setFilter] = useState('');
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then((response) => setPersons(response.data))
+    contactService.getAll().then(contacts => setPersons(contacts))
   }, [])
 
 
@@ -35,10 +35,17 @@ const App = () => {
       alert(`${name} is already added to the phonebook`);
       return false;
     } else {
-      const contact = {name: name, number: number};
-      setPersons(persons => [contact, ...persons]);
+      contactService
+        .create(name, number)
+        .then(contact => setPersons(persons.concat(contact)))
       return true;
     }
+  }
+
+  const deleteContact = (id) => {
+    contactService.delete(id).then(_ => {
+      setPersons(persons.filter(person => person.id !== id))
+    })
   }
 
   return (<div>
@@ -49,7 +56,7 @@ const App = () => {
     <NewContactForm addContact={addContact}/>
 
     <h2>Numbers</h2>
-    <Numbers persons={filteredPersons}/>
+    <Numbers persons={filteredPersons} deleteContact={deleteContact}/>
   </div>);
 }
 
@@ -90,10 +97,25 @@ const NewContactForm = ({addContact}) => {
   </form>)
 }
 
-const Numbers = ({persons}) => (
+const Numbers = ({persons, deleteContact}) => (
   <ul>
-    {persons.map(person => <li key={person.name}>{person.name} {person.number}</li>)}
+    {persons.map(person => <ContactItem
+      key={person.id}
+      contact={person}
+      deleteContact={() => deleteContact(person.id)}
+    />)}
   </ul>
 )
+
+const ContactItem = ({contact, deleteContact}) => {
+  const delete_ = () => {
+    if (window.confirm(`Delete ${contact.name}?`)) deleteContact();
+  }
+
+  return <li>
+    {contact.name} {contact.number}
+    <button key={`delete-button-${contact.id}`} onClick={delete_}>delete</button>
+  </li>;
+}
 
 export default App;
