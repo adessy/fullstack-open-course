@@ -31,9 +31,18 @@ const App = () => {
       return false;
     }
 
-    if (persons.some(person => person.name === name)) {
-      alert(`${name} is already added to the phonebook`);
-      return false;
+    const contact = contactByName(name);
+    if (contact) {
+      if(window.confirm(`${name} is already added to phonebook, replace the old number with this one?`)) {
+        contactService
+          .update(contact.id, {number})
+          .then(contact => {
+            setPersons(persons.map(person => person.id === contact.id ? contact : person))
+          })
+        return true;
+      } else {
+        return false;
+      }
     } else {
       contactService
         .create(name, number)
@@ -41,6 +50,8 @@ const App = () => {
       return true;
     }
   }
+
+  const contactByName = (name) => persons.find(person => person.name === name);
 
   const deleteContact = (id) => {
     contactService.delete(id).then(_ => {

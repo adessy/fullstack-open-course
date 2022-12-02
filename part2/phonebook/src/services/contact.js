@@ -17,8 +17,15 @@ const delete_ = (id) => {
     .then(response => response.data)
 }
 
+const update = (id, attributes) => {
+  return axios
+    .patch(`${baseUrl}/${id}`, attributes)
+    .then(response => response.data)
+}
+
 export default {
-  getAll: getAll,
   create: create,
-  delete: delete_
+  delete: delete_,
+  getAll: getAll,
+  update: update
 }
