@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
-import axios from "axios";
 
 import contactService from "./services/contact";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [filter, setFilter] = useState('');
+  const [message, setMessage] = useState({message: null, isError: false});
 
   useEffect(() => {
     contactService.getAll().then(contacts => setPersons(contacts))
@@ -33,11 +33,12 @@ const App = () => {
 
     const contact = contactByName(name);
     if (contact) {
-      if(window.confirm(`${name} is already added to phonebook, replace the old number with this one?`)) {
+      if (window.confirm(`${name} is already added to phonebook, replace the old number with this one?`)) {
         contactService
           .update(contact.id, {number})
           .then(contact => {
             setPersons(persons.map(person => person.id === contact.id ? contact : person))
+            createNotification(`Updated ${contact.name}`)
           })
         return true;
       } else {
@@ -46,7 +47,10 @@ const App = () => {
     } else {
       contactService
         .create(name, number)
-        .then(contact => setPersons(persons.concat(contact)))
+        .then(contact => {
+          setPersons(persons.concat(contact));
+          createNotification(`Added ${contact.name}`)
+        })
       return true;
     }
   }
@@ -54,13 +58,27 @@ const App = () => {
   const contactByName = (name) => persons.find(person => person.name === name);
 
   const deleteContact = (id) => {
-    contactService.delete(id).then(_ => {
-      setPersons(persons.filter(person => person.id !== id))
-    })
+    const name = persons.find(person => person.id === id).name;
+
+    contactService
+      .delete(id)
+      .then(_ => {
+        setPersons(persons.filter(person => person.id !== id))
+        createNotification(`Deleted ${name}`)
+      })
+      .catch(_ => createNotification(`Information of ${name} has already been deleted.`, true))
+  }
+
+  const createNotification = (message, isError = false) => {
+    setMessage({message: message, isError: isError});
+    setTimeout(() => {
+      setMessage({message: null, isError: false})
+    }, 3000)
   }
 
   return (<div>
     <h1>Phonebook</h1>
+    <Message {...message} />
     <Filter filter={filter} setFilter={setFilter}/>
 
     <h2>Add new contact</h2>
@@ -127,6 +145,12 @@ const ContactItem = ({contact, deleteContact}) => {
     {contact.name} {contact.number}
     <button key={`delete-button-${contact.id}`} onClick={delete_}>delete</button>
   </li>;
+}
+
+const Message = ({message, isError = false}) => {
+  if (message === null) return null;
+
+  return <div className={isError ? 'error' : 'message'}> {message} </div>
 }
 
 export default App;
